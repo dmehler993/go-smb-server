@@ -107,7 +107,7 @@ func (c *conn) handleNegotiate(msg []byte, hdr *wire.Header) uint32 {
 	}
 
 	resp := wire.NegotiateResponse{
-		SecurityMode:    wire.SigningEnabled,
+		SecurityMode:    wire.SigningEnabled | wire.SigningRequired,
 		DialectRevision: dialect,
 		ServerGuid:      c.srv.guid,
 		Capabilities:    c.negotiateCapabilities(),
@@ -201,7 +201,11 @@ func (c *conn) handleSessionSetup(ctx context.Context, msg []byte, hdr *wire.Hea
 		}
 
 		// Publish authenticated state only after security setup succeeds.
+		// Activate mandatory request signing only after the
+		// authentication key and signer have been validated.
+		// MS-SMB2: negotiated signing policy and session setup.
 		sess.signer = signer
+		sess.requireSign = true
 		sess.encryptionKey = encryption.DeriveServerEncryptionKey(result.SessionKey)
 		sess.decryptionKey = encryption.DeriveServerDecryptionKey(result.SessionKey)
 		sess.requireEncrypt = c.srv.requireEnc
